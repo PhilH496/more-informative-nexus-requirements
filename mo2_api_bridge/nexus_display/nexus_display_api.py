@@ -10,6 +10,8 @@ import json
 import time
 from bridge_client import MO2BridgeClient
 from nexus_display import getEnabledModIds, getModIds
+
+PORT = 52526
 class NexusDisplayAPIHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.client = MO2BridgeClient(name="NexusDisplay")
@@ -44,7 +46,7 @@ class NexusDisplayAPIHandler(BaseHTTPRequestHandler):
 # GET  /api/mod-ids/endorsements  - Returns all endorsed Nexus mod IDs
 def run(server_class=HTTPServer, handler_class=NexusDisplayAPIHandler):
     """Runs the API server."""
-    server_address = ('', 52526)
+    server_address = ('', PORT)
     httpd = server_class(server_address, handler_class)
     httpd.serve_forever()
 
