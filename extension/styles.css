@@ -1,0 +1,39 @@
+.mod-status-cell {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.mod-status-cell>*:not(.enabled-status) {
+  flex: 1;
+  padding-right: 10px;
+}
+
+.enabled-status {
+  display: inline-block;
+  margin-left: 10px;
+  font-weight: bold;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.enabled-status.enabled {
+  color: #28cd41;
+}
+
+.enabled-status.installed {
+  color: #28cd41;
+}
+
+.enabled-status.not-installed {
+  color: #ff3b30;
+}
+
+.enabled-status.unknown {
+  color: #8e8e93;
+}
+
+.enabled-status .status-icon {
+  margin-right: 2px;
+}
