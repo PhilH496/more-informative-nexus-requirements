@@ -12,6 +12,9 @@ from nexus_display import getEnabledModIds, getModIds
 
 PORT = 52526
 class NexusDisplayAPIHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        # suppress logs
+        pass
 
     @property
     def client(self):
