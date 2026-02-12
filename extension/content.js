@@ -124,3 +124,12 @@ new MutationObserver(() => {
     setTimeout(addEnabledIndicators, 1000);
   }
 }).observe(document, { subtree: true, childList: true });
+
+// listen for setting changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && (changes.showEnabled || changes.showInstalled)) {
+    document.querySelectorAll('.enabled-status').forEach(el => el.remove());
+    document.querySelectorAll('.mod-status-cell').forEach(el => el.classList.remove('mod-status-cell'));
+    addEnabledIndicators();
+  }
+});
