@@ -5,22 +5,18 @@ Nexus Display API
 =================
 API server for displaying Nexus mod information.
 """
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-import time
 from bridge_client import MO2BridgeClient
 from nexus_display import getEnabledModIds, getModIds
 
 PORT = 52526
 class NexusDisplayAPIHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        self.client = MO2BridgeClient(name="NexusDisplay")
-        print("\nConnecting to MO2 Bridge...")
-        if not self.client.connect():
-            print("Failed to connect. Make sure MO2 is running and the AI Bridge plugin is installed.")
-            exit(1)
-        super().__init__(*args, **kwargs)
-    
+
+    @property
+    def client(self):
+        return self.server.mo2_client
+
     def ok_response(self):
         """Send a 200 OK response."""
         self.send_response(200)
@@ -35,21 +31,43 @@ class NexusDisplayAPIHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"status": "ok"}')
         elif self.path == '/api/mod-ids':
             self.ok_response()
-            mod_ids = getModIds(self.client)
-            self.wfile.write(json.dumps(mod_ids).encode('utf-8'))
+            try:
+                mod_ids = getModIds(self.client)
+                self.wfile.write(json.dumps(mod_ids).encode('utf-8'))
+            except Exception as e:
+                print(f"Error getting mod ids: {e}")
+                self.wfile.write(b'{"nexus_ids": []}')
         elif self.path == '/api/mod-ids/enabled':
             self.ok_response()
-            enabled_ids = getEnabledModIds(self.client)
-            self.wfile.write(json.dumps(enabled_ids).encode('utf-8'))
+            try:
+                enabled_ids = getEnabledModIds(self.client)
+                self.wfile.write(json.dumps(enabled_ids).encode('utf-8'))
+            except Exception as e:
+                print(f"Error getting enabled ids: {e}")
+                self.wfile.write(b'{"enabled_ids": []}')
             
 # TODO: Implement API endpoints
 # GET  /api/mod-ids/tracked       - Returns all tracked Nexus mod IDs
 # GET  /api/mod-ids/endorsements  - Returns all endorsed Nexus mod IDs
-def run(server_class=HTTPServer, handler_class=NexusDisplayAPIHandler):
+def run(server_class=ThreadingHTTPServer, handler_class=NexusDisplayAPIHandler):
     """Runs the API server."""
+    client = MO2BridgeClient(name="NexusDisplay")
+    print("\nConnecting to MO2 Bridge...")
+    if not client.connect():
+        print("Failed to connect. Make sure MO2 is running and the AI Bridge plugin is installed.")
+    
     server_address = ('', PORT)
     httpd = server_class(server_address, handler_class)
-    httpd.serve_forever()
+    # reuse client otherwise will have issues with opening multiple web pages with multiple connections
+    httpd.mo2_client = client
+    
+    print(f"Server running on port {PORT}")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        client.disconnect()
+        httpd.server_close()
 
 if __name__ == '__main__':
     run()
