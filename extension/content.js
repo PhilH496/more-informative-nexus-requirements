@@ -127,7 +127,7 @@ new MutationObserver(() => {
 
 // listen for setting changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && (changes.showEnabled || changes.showInstalled)) {
+  if (namespace === 'local' && (changes.showEnabled)) {
     document.querySelectorAll('.enabled-status').forEach(el => el.remove());
     document.querySelectorAll('.mod-status-cell').forEach(el => el.classList.remove('mod-status-cell'));
     addEnabledIndicators();
