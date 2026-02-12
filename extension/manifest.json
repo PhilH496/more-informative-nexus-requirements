@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Nexus Mods Checker",
+  "version": "1.0",
+  "description": "Displays extra info in the requirements tab on nexus mods",
+  "permissions": ["storage"],
+  "host_permissions": ["https://www.nexusmods.com/*", "https://api.nexusmods.com/*", "http://localhost:52526/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.nexusmods.com/*/mods/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "options_page": "debug.html"
+}
