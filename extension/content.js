@@ -1,3 +1,12 @@
+// This script runs on every Nexus Mods mod page
+
+// cache for mod data. only works for navigating between tabs on same mod page
+let downloadCache = {
+  data: null,
+  timestamp: null,
+  expiresIn: 3600000
+};
+
 async function fetchUserMods() {
   const now = Date.now();
   if (downloadCache.data && downloadCache.timestamp && (now - downloadCache.timestamp < downloadCache.expiresIn)) {
@@ -97,3 +106,21 @@ async function addEnabledIndicators() {
       }
     });
   });
+}
+
+// run script on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', addEnabledIndicators);
+} else {
+  addEnabledIndicators();
+}
+
+// rerun script when changing pages
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const url = location.href;
+  if (url !== lastUrl) {
+    lastUrl = url;
+    setTimeout(addEnabledIndicators, 1000);
+  }
+}).observe(document, { subtree: true, childList: true });
