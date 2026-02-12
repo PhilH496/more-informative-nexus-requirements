@@ -25,7 +25,7 @@ def getEnabledModIds(client: MO2BridgeClient) -> Dict[str, List[int]]:
         for mod_name in mod_names:
             try:
                 state = client.call('modList.state', mod_name)
-                if state == 35: # 35 is the state for enabled mods
+                if state != 32: # 32 is the state for disabled mods
                     nexus_id = client.call('modList.nexusId', mod_name)
                     if nexus_id and nexus_id != -1:
                         enabled_ids.append(nexus_id)
