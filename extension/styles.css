@@ -1,21 +1,21 @@
 .mod-status-cell {
   display: flex !important;
   align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
 }
 
 .mod-status-cell>*:not(.enabled-status) {
-  flex: 1;
   padding-right: 10px;
 }
 
 .enabled-status {
-  display: inline-block;
-  margin-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
   font-weight: bold;
   font-size: 13px;
   white-space: nowrap;
+  gap: 6px;
 }
 
 .enabled-status.enabled {
@@ -39,10 +39,10 @@
 }
 
 .api-status-icon {
-  display: inline-block;
-  margin-left: 8px;
-  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
   color: #da8e35;
+  flex-shrink: 0;
 }
 
 .api-status-icon svg {
