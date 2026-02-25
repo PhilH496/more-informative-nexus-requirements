@@ -124,8 +124,7 @@ async function addEnabledIndicators() {
   if (!userMods) return console.log('Could not fetch user mods');
 
   const { enabledModIds, allModIds } = userMods;
-  if (enabledModIds.size === 0) return console.log('No enabled mods found');
-  if (allModIds.size === 0) return console.log('No installed mods found');
+  const hasMO2Data = enabledModIds.size > 0 || allModIds.size > 0;
 
   const apiKey = await getApiKey();
   const currentGame = getCurrentGame();
@@ -136,6 +135,11 @@ async function addEnabledIndicators() {
 
   const trackedModIds = new Set(apiModStatus.trackedMods.map(mod => mod.mod_id));
   const endorsedModIds = new Set(apiModStatus.endorsedMods.map(mod => mod.mod_id));
+
+  const hasNexusData = apiKey && (trackedModIds.size > 0 || endorsedModIds.size > 0);
+  if (!hasMO2Data && !hasNexusData) {
+    return console.error('No mod data: MO2 unreachable and no Nexus data to show');
+  }
 
   requirementRows.forEach(row => {
     // skip if we've already processed this row
@@ -159,27 +163,34 @@ async function addEnabledIndicators() {
     }
 
     chrome.storage.local.get({ showEnabled: true, showInstalled: true, showTracked: true, showEndorsed: true }, async (settings) => {
-      const enabledStatus = enabledModIds.has(modId);
-      const installedMods = allModIds.has(modId);
+      const isEnabled = enabledModIds.has(modId);
+      const isInstalled = allModIds.has(modId);
       const isTracked = trackedModIds.has(modId);
       const isEndorsed = endorsedModIds.has(modId);
+      const showNexusBadges = apiKey && ((settings.showTracked && isTracked) || (settings.showEndorsed && isEndorsed));
 
       const statusCell = row.querySelector('td:last-child');
       if (statusCell) {
         const indicator = document.createElement('div');
         let shouldShow = false;
 
-        if (enabledStatus === true && settings.showEnabled) {
-          indicator.className = 'enabled-status enabled';
-          indicator.innerHTML = '<span class="status-icon">✓</span> Enabled';
-          shouldShow = true;
-        } else if (installedMods === true) { // no setting for this. kinda the whole point
-          indicator.className = 'enabled-status installed';
-          indicator.innerHTML = '<span class="status-icon">✓</span> Installed';
-          shouldShow = true;
-        } else {
-          indicator.className = 'enabled-status not-installed';
-          indicator.innerHTML = '<span class="status-icon">✗</span> Not Installed';
+        if (hasMO2Data) {
+          if (isEnabled && settings.showEnabled) {
+            indicator.className = 'enabled-status enabled';
+            indicator.innerHTML = '<span class="status-icon">✓</span> Enabled';
+            shouldShow = true;
+          } else if (isInstalled) {
+            indicator.className = 'enabled-status installed';
+            indicator.innerHTML = '<span class="status-icon">✓</span> Installed';
+            shouldShow = true;
+          } else {
+            indicator.className = 'enabled-status not-installed';
+            indicator.innerHTML = '<span class="status-icon">✗</span> Not Installed';
+            shouldShow = true;
+          }
+        } else if (showNexusBadges) {
+          indicator.className = 'enabled-status unknown';
+          indicator.innerHTML = '<span class="status-icon">?</span> Unknown';
           shouldShow = true;
         }
 
