@@ -3,7 +3,7 @@
 let downloadCache = {
   data: null,
   timestamp: null,
-  expiresIn: 3600000
+  expiresIn: 60000
 };
 
 // cache for api mod status
@@ -11,7 +11,8 @@ let apiModCache = {
   trackedMods: null,
   endorsedMods: null,
   timestamp: null,
-  expiresIn: 3600000
+  expiresIn: 60000,
+  game: null
 };
 
 const TRACKED_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/></svg>';
@@ -71,16 +72,41 @@ async function fetchEndorsedMods(apiKey) {
   return endorsedMods
 }
 
+function isCacheAlive(cache, currentGame, now, maxAgeMs) {
+  return (
+    cache &&
+    cache.trackedMods &&
+    cache.endorsedMods &&
+    cache.timestamp &&
+    cache.game === currentGame &&
+    now - cache.timestamp < maxAgeMs
+  );
+}
+
 async function fetchNexusData(apiKey, currentGame) {
   const now = Date.now();
-  if (apiModCache.trackedMods && apiModCache.endorsedMods && apiModCache.timestamp && (now - apiModCache.timestamp < apiModCache.expiresIn)) {
-    return {
-      trackedMods: apiModCache.trackedMods,
-      endorsedMods: apiModCache.endorsedMods
-    };
-  }
-
   try {
+    if (isCacheAlive(apiModCache, currentGame, now, apiModCache.expiresIn)) {
+      return {
+        trackedMods: apiModCache.trackedMods,
+        endorsedMods: apiModCache.endorsedMods
+      };
+    }
+
+    const stored = await chrome.storage.local.get('apiModCache');
+    const storedCache = stored.apiModCache;
+    if (isCacheAlive(storedCache, currentGame, now, apiModCache.expiresIn)) {
+      apiModCache.trackedMods = storedCache.trackedMods;
+      apiModCache.endorsedMods = storedCache.endorsedMods;
+      apiModCache.timestamp = storedCache.timestamp;
+      apiModCache.game = storedCache.game;
+
+      return {
+        trackedMods: apiModCache.trackedMods,
+        endorsedMods: apiModCache.endorsedMods
+      };
+    }
+
     const trackedMods = await fetchTrackedMods(apiKey)
     const endorsedMods = await fetchEndorsedMods(apiKey)
 
@@ -91,6 +117,20 @@ async function fetchNexusData(apiKey, currentGame) {
     apiModCache.trackedMods = gameTracked;
     apiModCache.endorsedMods = gameEndorsed;
     apiModCache.timestamp = now;
+    apiModCache.game = currentGame;
+
+    try {
+      await chrome.storage.local.set({
+        apiModCache: {
+          trackedMods: gameTracked,
+          endorsedMods: gameEndorsed,
+          timestamp: now,
+          game: currentGame
+        }
+      });
+    } catch (storageError) {
+      console.error('Error writing API mod cache to storage:', storageError);
+    }
 
     return {
       trackedMods: gameTracked,
@@ -104,11 +144,27 @@ async function fetchNexusData(apiKey, currentGame) {
 
 async function fetchMo2Data() {
   const now = Date.now();
-  if (downloadCache.data && downloadCache.timestamp && (now - downloadCache.timestamp < downloadCache.expiresIn)) {
-    return downloadCache.data;
-  }
-
   try {
+
+    if (
+      downloadCache.data &&
+      downloadCache.timestamp &&
+      now - downloadCache.timestamp < downloadCache.expiresIn
+    ) {
+      return downloadCache.data;
+    }
+
+    const stored = await chrome.storage.local.get('mo2Cache');
+    const storedCache = stored.mo2Cache;
+    if (storedCache && storedCache.timestamp && now - storedCache.timestamp < downloadCache.expiresIn) {
+      const enabledModIds = new Set(storedCache.enabledModIds || []);
+      const allModIds = new Set(storedCache.allModIds || []);
+      const data = { enabledModIds, allModIds };
+      downloadCache.data = data;
+      downloadCache.timestamp = storedCache.timestamp;
+      return data;
+    }
+
     const enabledResponse = await fetch('http://localhost:52526/api/mod-ids/enabled');
     const enabledModsJson = await enabledResponse.json();
     const enabledModIds = new Set(enabledModsJson.enabled_ids);
@@ -119,6 +175,18 @@ async function fetchMo2Data() {
 
     downloadCache.data = { enabledModIds, allModIds };
     downloadCache.timestamp = now;
+
+    try {
+      await chrome.storage.local.set({
+        mo2Cache: {
+          enabledModIds: Array.from(enabledModIds),
+          allModIds: Array.from(allModIds),
+          timestamp: now
+        }
+      });
+    } catch (storageError) {
+      console.error('Error writing MO2 cache to storage:', storageError);
+    }
 
     return { enabledModIds, allModIds };
   } catch (error) {
@@ -253,6 +321,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       apiModCache.trackedMods = null;
       apiModCache.endorsedMods = null;
       apiModCache.timestamp = null;
+      apiModCache.game = null;
+      chrome.storage.local.remove('apiModCache');
     }
     main();
   }
