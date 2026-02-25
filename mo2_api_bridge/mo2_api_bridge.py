@@ -7,7 +7,7 @@ Added batch methods for high-performance operations.
 Author: AI Bridge Team
 Version: 1.4.0
 ==========================================
-original code by AlhimikPh on nexusmods.com and edited by PhilH496 on github.com
+original code by AlhimikPh on nexusmods.com
 """
 
 import mobase

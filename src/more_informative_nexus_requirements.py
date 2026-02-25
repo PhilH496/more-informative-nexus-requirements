@@ -1,5 +1,5 @@
 from typing import Dict, List
-from bridge_client import MO2BridgeClient
+from .bridge_client import MO2BridgeClient
 
 def getModIds(client: MO2BridgeClient) -> Dict[str, List[int]]:
     """Gets all mod ids."""
