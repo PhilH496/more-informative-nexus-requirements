@@ -1,7 +1,14 @@
-#enabled-mods-container {
+#enabled-mods-container,
+#tracked-mods-container,
+#endorsed-mods-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+#api-key-container {
+    margin-bottom: 15px;
 }
 
 body {
@@ -79,4 +86,13 @@ input:checked+.slider {
 input:checked+.slider:before {
     transform: translateX(22px);
     background-color: #1a1a1a;
+}
+
+input:disabled+.slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+input:disabled+.slider:before {
+    cursor: not-allowed;
 }
