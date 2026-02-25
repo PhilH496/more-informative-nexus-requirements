@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Display API
-=================
-API server for displaying Nexus mod information.
+More Informative Nexus Requirements Server
+==========================================
+API for fetching mo2 mod info.
 """
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-from bridge_client import MO2BridgeClient
-from nexus_display import getEnabledModIds, getModIds
+from .bridge_client import MO2BridgeClient
+from .more_informative_nexus_requirements import getEnabledModIds, getModIds
 
 PORT = 52526
-class NexusDisplayAPIHandler(BaseHTTPRequestHandler):
+class MoreInformativeNexusRequirementsAPIHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         # suppress logs
         pass
@@ -48,29 +48,35 @@ class NexusDisplayAPIHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(f"Error getting enabled ids: {e}")
                 self.wfile.write(b'{"enabled_ids": []}')
-            
-# TODO: Implement API endpoints
-# GET  /api/mod-ids/tracked       - Returns all tracked Nexus mod IDs
-# GET  /api/mod-ids/endorsements  - Returns all endorsed Nexus mod IDs
-def run(server_class=ThreadingHTTPServer, handler_class=NexusDisplayAPIHandler):
-    """Runs the API server."""
-    client = MO2BridgeClient(name="NexusDisplay")
-    print("\nConnecting to MO2 Bridge...")
-    if not client.connect():
-        print("Failed to connect. Make sure MO2 is running and the AI Bridge plugin is installed.")
-    
+
+def run(server_class=ThreadingHTTPServer, handler_class=MoreInformativeNexusRequirementsAPIHandler, client=None):
+    """
+    Run the server.
+    """
+    if client is None:
+        client = MO2BridgeClient(name="MoreInformativeNexusRequirements")
+        print("\nConnecting to MO2 Bridge...")
+        if not client.connect():
+            print("Failed to connect. Make sure MO2 is running and the AI Bridge plugin is installed.")
+            return
+        own_client = True
+    else:
+        own_client = False
+
     server_address = ('', PORT)
     httpd = server_class(server_address, handler_class)
-    # reuse client otherwise will have issues with opening multiple web pages with multiple connections
     httpd.mo2_client = client
-    
-    print(f"Server running on port {PORT}")
+
+    if own_client:
+        print(f"Server running on port {PORT}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nShutting down...")
-        client.disconnect()
+        if own_client:
+            print("\nShutting down...")
+            client.disconnect()
         httpd.server_close()
+
 
 if __name__ == '__main__':
     run()
