@@ -59,8 +59,7 @@ async function fetchEndorsedMods(apiKey) {
   return endorsedMods
 }
 
-// Fetch user's tracked/endorsed mods from Nexus API
-async function fetchApiModStatus(apiKey, currentGame) {
+async function fetchNexusData(apiKey, currentGame) {
   const now = Date.now();
   if (apiModCache.trackedMods && apiModCache.endorsedMods && apiModCache.timestamp && (now - apiModCache.timestamp < apiModCache.expiresIn)) {
     return {
@@ -91,7 +90,7 @@ async function fetchApiModStatus(apiKey, currentGame) {
   }
 }
 
-async function fetchUserMods() {
+async function fetchMo2Data() {
   const now = Date.now();
   if (downloadCache.data && downloadCache.timestamp && (now - downloadCache.timestamp < downloadCache.expiresIn)) {
     return downloadCache.data;
@@ -116,11 +115,11 @@ async function fetchUserMods() {
   }
 }
 
-async function addEnabledIndicators() {
+async function main() {
   const requirementRows = document.querySelectorAll('table tbody tr');
   if (requirementRows.length === 0) return console.log('No requirement rows found');
 
-  const userMods = await fetchUserMods();
+  const userMods = await fetchMo2Data();
   if (!userMods) return console.log('Could not fetch user mods');
 
   const { enabledModIds, allModIds } = userMods;
@@ -130,7 +129,7 @@ async function addEnabledIndicators() {
   const currentGame = getCurrentGame();
   let apiModStatus = { trackedMods: [], endorsedMods: [] };
   if (apiKey && currentGame) {
-    apiModStatus = await fetchApiModStatus(apiKey, currentGame);
+    apiModStatus = await fetchNexusData(apiKey, currentGame);
   }
 
   const trackedModIds = new Set(apiModStatus.trackedMods.map(mod => mod.mod_id));
@@ -223,9 +222,9 @@ async function addEnabledIndicators() {
 
 // run script on page load
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', addEnabledIndicators);
+  document.addEventListener('DOMContentLoaded', main);
 } else {
-  addEnabledIndicators();
+  main();
 }
 
 // rerun script when changing pages
@@ -234,7 +233,7 @@ new MutationObserver(() => {
   const url = location.href;
   if (url !== lastUrl) {
     lastUrl = url;
-    setTimeout(addEnabledIndicators, 1000);
+    setTimeout(main, 1000);
   }
 }).observe(document, { subtree: true, childList: true });
 
@@ -250,6 +249,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       apiModCache.endorsedMods = null;
       apiModCache.timestamp = null;
     }
-    addEnabledIndicators();
+    main();
   }
 });
