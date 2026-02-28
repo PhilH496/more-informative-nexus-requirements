@@ -218,7 +218,6 @@ async function main() {
   const { enabledModIds, allModIds } = userMods;
   const hasMO2Data = enabledModIds.size > 0 || allModIds.size > 0;
 
-  const apiKey = await getApiKey();
   const currentGame = getCurrentGame();
   let apiModStatus = { trackedMods: [], endorsedMods: [] };
   if (apiKey && currentGame) {
@@ -230,27 +229,27 @@ async function main() {
 
   const hasNexusData = apiKey && (trackedModIds.size > 0 || endorsedModIds.size > 0);
   if (!hasMO2Data && !hasNexusData) {
-    return console.error('No mod data: MO2 unreachable and no Nexus data to show');
+    console.error('No mod data: MO2 unreachable and no Nexus data to show');
+    return;
   }
 
-  requirementRows.forEach(row => {
+  for (const row of requirementRows) {
     // skip if we've already processed this row
-    if (row.querySelector('.enabled-status')) {
-      return;
-    }
+    if (row.querySelector('.enabled-status')) continue;
 
-    // get mod name from the first cell
     const nameCell = row.querySelector('td:first-child');
-    if (!nameCell) return;
-
-    const modLink = nameCell.querySelector('a');
+    if (!nameCell) continue;
 
     // try to extract mod ID from the link if available
+    const modLink = nameCell.querySelector('a');
     let modId = null;
     if (modLink) {
       const linkMatch = modLink.href.match(/\/mods\/(\d+)/);
-      if (linkMatch) {
-        modId = parseInt(linkMatch[1], 10);
+      // [1] corresponds to mod id in url 
+      // specify base 10 to avoid errors with leading 0 strings
+      if (linkMatch) modId = parseInt(linkMatch[1], 10);
+    }
+    if (modId == null) continue; 
       }
     }
 
