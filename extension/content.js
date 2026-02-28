@@ -250,59 +250,53 @@ async function main() {
       if (linkMatch) modId = parseInt(linkMatch[1], 10);
     }
     if (modId == null) continue; 
+
+    const isEnabled = enabledModIds.has(modId);
+    const isInstalled = allModIds.has(modId);
+    const isTracked = trackedModIds.has(modId);
+    const isEndorsed = endorsedModIds.has(modId);
+    const hasBadges = apiKey && ((showTracked && isTracked) || (showEndorsed && isEndorsed));
+
+    const statusCell = row.querySelector('td:last-child');
+    if (!statusCell) continue;
+
+    const indicator = document.createElement('div');
+    let shouldShow = false;
+
+    if (hasMO2Data) {
+      if (isEnabled && showEnabled) {
+        indicator.className = 'enabled-status enabled';
+        indicator.innerHTML = '<span class="status-icon">✓</span> Enabled';
+        shouldShow = true;
+      } else if (isInstalled && showInstalled) {
+        indicator.className = 'enabled-status installed';
+        indicator.innerHTML = '<span class="status-icon">✓</span> Installed';
+        shouldShow = true;
+      } else if (showUninstalled) {
+        indicator.className = 'enabled-status not-installed';
+        indicator.innerHTML = '<span class="status-icon">✗</span> Not Installed';
+        shouldShow = true;
+      } else if (hasBadges) {
+        indicator.className = 'enabled-status';
+        shouldShow = true;
       }
+    } else if (hasBadges) {
+      indicator.className = 'enabled-status unknown';
+      indicator.innerHTML = '<span class="status-icon">?</span> Unknown';
+      shouldShow = true;
     }
 
-    chrome.storage.local.get({ showEnabled: true, showInstalled: true, showTracked: true, showEndorsed: true }, async (settings) => {
-      const isEnabled = enabledModIds.has(modId);
-      const isInstalled = allModIds.has(modId);
-      const isTracked = trackedModIds.has(modId);
-      const isEndorsed = endorsedModIds.has(modId);
-      const showNexusBadges = apiKey && ((settings.showTracked && isTracked) || (settings.showEndorsed && isEndorsed));
-
-      const statusCell = row.querySelector('td:last-child');
-      if (statusCell) {
-        const indicator = document.createElement('div');
-        let shouldShow = false;
-
-        if (hasMO2Data) {
-          if (isEnabled && settings.showEnabled) {
-            indicator.className = 'enabled-status enabled';
-            indicator.innerHTML = '<span class="status-icon">✓</span> Enabled';
-            shouldShow = true;
-          } else if (isInstalled) {
-            indicator.className = 'enabled-status installed';
-            indicator.innerHTML = '<span class="status-icon">✓</span> Installed';
-            shouldShow = true;
-          } else {
-            indicator.className = 'enabled-status not-installed';
-            indicator.innerHTML = '<span class="status-icon">✗</span> Not Installed';
-            shouldShow = true;
-          }
-        } else if (showNexusBadges) {
-          indicator.className = 'enabled-status unknown';
-          indicator.innerHTML = '<span class="status-icon">?</span> Unknown';
-          shouldShow = true;
-        }
-
-        if (shouldShow) {
-          statusCell.classList.add('mod-status-cell');
-          
-          if (apiKey && settings.showTracked && isTracked) {
-            const trackedIcon = createApiStatusIcon('tracked', TRACKED_SVG, 'Tracked');
-            indicator.appendChild(trackedIcon);
-          }
-
-          if (apiKey && settings.showEndorsed && isEndorsed) {
-            const endorsedIcon = createApiStatusIcon('endorsed', ENDORSED_SVG, 'Endorsed');
-            indicator.appendChild(endorsedIcon);
-          }
-          
-          statusCell.appendChild(indicator);
-        }
+    if (shouldShow) {
+      statusCell.classList.add('mod-status-cell');
+      if (apiKey && showTracked && isTracked) {
+        indicator.appendChild(createApiStatusIcon('tracked', TRACKED_SVG, 'Tracked'));
       }
-    });
-  });
+      if (apiKey && showEndorsed && isEndorsed) {
+        indicator.appendChild(createApiStatusIcon('endorsed', ENDORSED_SVG, 'Endorsed'));
+      }
+      statusCell.appendChild(indicator);
+    }
+  }
 }
 
 // run script on page load
@@ -312,13 +306,15 @@ if (document.readyState === 'loading') {
   main();
 }
 
-// rerun script when changing pages
+// rerun script when changing pages (debounced)
 let lastUrl = location.href;
+let mainTimeout = null;
 new MutationObserver(() => {
   const url = location.href;
   if (url !== lastUrl) {
     lastUrl = url;
-    setTimeout(main, 1000);
+    if (mainTimeout) clearTimeout(mainTimeout);
+    mainTimeout = setTimeout(() => { mainTimeout = null; main(); }, 500);
   }
 }).observe(document, { subtree: true, childList: true });
 
