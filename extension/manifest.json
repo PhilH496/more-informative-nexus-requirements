@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Nexus Mods Checker",
+  "name": "More Informative Nexus Requirements",
   "version": "1.0",
-  "description": "Displays extra info in the requirements tab on nexus mods",
+  "description": "Displays mod statuses in the requirements tab on Nexus Mods.",
   "permissions": ["storage"],
   "host_permissions": ["https://www.nexusmods.com/*", "https://api.nexusmods.com/*", "http://localhost:52526/*"],
   "content_scripts": [
