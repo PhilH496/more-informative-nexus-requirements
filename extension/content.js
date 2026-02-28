@@ -53,7 +53,7 @@ async function fetchTrackedMods(apiKey) {
   }
 
   const trackedMods = await trackedResponse.json();
-  return trackedMods
+  return trackedMods;
 }
 
 async function fetchEndorsedMods(apiKey) {
@@ -69,7 +69,7 @@ async function fetchEndorsedMods(apiKey) {
   }
   
   const endorsedMods = await endorsedResponse.json();
-  return endorsedMods
+  return endorsedMods;
 }
 
 function isCacheAlive(cache, currentGame, now, maxAgeMs) {
