@@ -1,13 +1,15 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const defaults = {
     showEnabled: true,
-    showTracked: true,
-    showEndorsed: true
+    showUninstalled: true,
+    showTracked: false,
+    showEndorsed: false
   };
 
   const result = await chrome.storage.local.get(defaults);
 
   const enabledCheckbox = document.querySelector('#enabled-mods-container input');
+  const uninstalledCheckbox = document.getElementById('uninstalledCheckbox');
   const trackedCheckbox = document.getElementById('trackedCheckbox');
   const endorsedCheckbox = document.getElementById('endorsedCheckbox');
   const apiKeyInput = document.getElementById('apiKey');
@@ -37,6 +39,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     enabledCheckbox.checked = result.showEnabled;
     enabledCheckbox.addEventListener('change', (e) => {
       chrome.storage.local.set({ showEnabled: e.target.checked });
+    });
+  }
+
+  if (uninstalledCheckbox) {
+    uninstalledCheckbox.checked = result.showUninstalled;
+    uninstalledCheckbox.addEventListener('change', (e) => {
+      chrome.storage.local.set({ showUninstalled: e.target.checked });
     });
   }
 

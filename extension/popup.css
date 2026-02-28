@@ -1,4 +1,5 @@
 #enabled-mods-container,
+#uninstalled-mods-container,
 #tracked-mods-container,
 #endorsed-mods-container {
     display: flex;
