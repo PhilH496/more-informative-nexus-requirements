@@ -197,10 +197,23 @@ async function fetchMo2Data() {
 
 async function main() {
   const requirementRows = document.querySelectorAll('table tbody tr');
-  if (requirementRows.length === 0) return console.log('No requirement rows found');
+  if (requirementRows.length === 0) {
+    console.error('No requirement rows found');
+    return;
+  }
 
-  const userMods = await fetchMo2Data();
-  if (!userMods) return console.log('Could not fetch user mods');
+  const defaults = { showEnabled: true, showInstalled: true, showUninstalled: true, showTracked: false, showEndorsed: false };
+  const [userMods, apiKey, settings] = await Promise.all([
+    fetchMo2Data(),
+    getApiKey(),
+    chrome.storage.local.get(defaults)
+  ]);
+  const { showEnabled, showInstalled, showUninstalled, showTracked, showEndorsed } = { ...defaults, ...settings };
+
+  if (!userMods) {
+    console.error('Could not fetch user mods');
+    return;
+  }
 
   const { enabledModIds, allModIds } = userMods;
   const hasMO2Data = enabledModIds.size > 0 || allModIds.size > 0;
