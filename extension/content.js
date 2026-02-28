@@ -312,9 +312,8 @@ new MutationObserver(() => {
 
 // clear rows if setting changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && (changes.showEnabled || changes.showTracked || changes.showEndorsed || changes.nexusApiKey)) {
+  if (namespace === 'local' && (changes.showEnabled || changes.showInstalled || changes.showUninstalled || changes.showTracked || changes.showEndorsed || changes.nexusApiKey)) {
     document.querySelectorAll('.enabled-status').forEach(el => el.remove());
-    document.querySelectorAll('.api-status-icon').forEach(el => el.remove());
     document.querySelectorAll('.mod-status-cell').forEach(el => el.classList.remove('mod-status-cell'));
     // clear api cache if key changes
     if (changes.nexusApiKey) {
