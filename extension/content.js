@@ -195,12 +195,65 @@ async function fetchMo2Data() {
   }
 }
 
+function clearAllCaches() {
+  downloadCache.data = null;
+  downloadCache.timestamp = null;
+  apiModCache.trackedMods = null;
+  apiModCache.endorsedMods = null;
+  apiModCache.timestamp = null;
+  apiModCache.game = null;
+  chrome.storage.local.remove(['apiModCache', 'mo2Cache']);
+}
+
+function refreshStatus() {
+  clearAllCaches();
+  document.querySelectorAll('.enabled-status').forEach(el => el.remove());
+  document.querySelectorAll('.mod-status-cell').forEach(el => el.classList.remove('mod-status-cell'));
+  main();
+}
+
+function createRefreshButton() {
+  if (document.getElementById('refresh-btn')) return;
+
+  const table = document.querySelector('table');
+  if (!table || !table.parentNode) return;
+  
+  // assumes "Nexus requirements" will always be <h3>
+  const h3 = Array.from(document.querySelectorAll('h3')).find(el => el.textContent.trim() === 'Nexus requirements');
+
+  const btn = document.createElement('button');
+  btn.id = 'refresh-btn';
+  btn.type = 'button';
+  btn.className = 'refresh-btn';
+  btn.innerHTML = '↻ Refresh status';
+  btn.title = 'Refresh tracked/endorsed and install status';
+  btn.addEventListener('click', () => {
+    refreshStatus();
+  });
+
+
+  if (h3 && h3.parentNode) { 
+    const row = document.createElement('div');
+    row.className = 'header-row';
+    h3.parentNode.insertBefore(row, h3);
+    row.appendChild(h3);
+    row.appendChild(btn);
+  } else {
+    // should never happen but just in case
+    const wrap = document.createElement('div');
+    wrap.className = 'refresh-wrap';
+    wrap.appendChild(btn);
+    table.parentNode.insertBefore(wrap, table);
+  }
+}
+
 async function main() {
   const requirementRows = document.querySelectorAll('table tbody tr');
   if (requirementRows.length === 0) {
     console.error('No requirement rows found');
     return;
   }
+  createRefreshButton();
 
   const defaults = { showEnabled: true, showInstalled: true, showUninstalled: true, showTracked: false, showEndorsed: false };
   const [userMods, apiKey, settings] = await Promise.all([

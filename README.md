@@ -55,3 +55,4 @@ Navigate to any Nexus Mods mod page that has a requirements section. The extensi
 - After changing settings, you may need to reload the Nexus Mods page to see updated status indicators.
 - Initial load can be a bit slow but will eventually persist and mod statuses will show instantly.
 - The API key is stored locally in Chrome's storage and is not saved to any external server. Necessary to make requests to the Nexus Mods API.
+- Mods can have duplicate ID's across different games. It is recommended you browse the nexus category of the game you have open in MO2 for the best results.

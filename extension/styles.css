@@ -50,3 +50,36 @@
   height: 16px;
   display: block;
 }
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.refresh-wrap {
+  margin-bottom: 10px;
+}
+
+.refresh-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  background: #da8e35;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #c47d2a;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
