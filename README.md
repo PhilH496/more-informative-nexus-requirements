@@ -15,15 +15,6 @@ Utilizes the mo2 API bridge by AlhimikPh at https://www.nexusmods.com/skyrimspec
   - `more_informative_nexus_requirements_server.py` - HTTP server on port 52526
   - `more_informative_nexus_requirements.py` - Functions to extract mod IDs from MO2
 
-## Development Setup
-
-### Prerequisites
-
-- Python
-- Chrome
-- MO2 installed
-- More Informative Requirements plugin
-
 ### Setup Steps
 
 1. Drag the src folder to mo2's plugin folder
