@@ -15,15 +15,6 @@ Utilizes the mo2 API bridge by AlhimikPh at https://www.nexusmods.com/skyrimspec
   - `more_informative_nexus_requirements_server.py` - HTTP server on port 52526
   - `more_informative_nexus_requirements.py` - Functions to extract mod IDs from MO2
 
-### Setup Steps
-
-1. Drag the src folder to mo2's plugin folder
-2. Load the extension in Chrome:
-   - Open `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select the `extension/` folder
-
 ## Settings
 
 - **Show Enabled Mods** - Displays "Enabled" status for mods that are enabled in MO2. When disabled, only shows "Installed" or "Not Installed" status.
