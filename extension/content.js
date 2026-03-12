@@ -1,4 +1,8 @@
-// This script runs on every Nexus Mods mod page
+const isModPage = /\/mods\/\d+/.test(window.location.pathname);
+if (!isModPage) {
+  // do nothing if url isnt /mods/{number}
+}
+
 // cache for mod data. only works for navigating between tabs on same mod page
 let downloadCache = {
   data: null,
