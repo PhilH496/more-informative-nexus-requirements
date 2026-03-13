@@ -377,16 +377,13 @@ new MutationObserver(() => {
 
 // clear rows if setting changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && (changes.showEnabled || changes.showInstalled || changes.showUninstalled || changes.showTracked || changes.showEndorsed || changes.nexusApiKey)) {
+  const hasSettingChanged = changes.showEnabled || changes.showInstalled || changes.showUninstalled || changes.showTracked || 
+  changes.showEndorsed || changes.nexusApiKey || changes.useNexusApi;
+  if (namespace === 'local' && hasSettingChanged) {
     document.querySelectorAll('.enabled-status').forEach(el => el.remove());
     document.querySelectorAll('.mod-status-cell').forEach(el => el.classList.remove('mod-status-cell'));
-    // clear api cache if key changes
-    if (changes.nexusApiKey) {
-      apiModCache.trackedMods = null;
-      apiModCache.endorsedMods = null;
-      apiModCache.timestamp = null;
-      apiModCache.game = null;
-      chrome.storage.local.remove('apiModCache');
+    if (hasSettingChanged) {
+      clearAllCaches();
     }
     main();
   }
