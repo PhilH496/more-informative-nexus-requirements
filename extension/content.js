@@ -44,36 +44,58 @@ function getCurrentGame() {
   return null;
 }
 
-async function fetchTrackedMods(apiKey) {
+async function fetchTrackedModsMo2() {
+  const trackedResponse = await fetch('http://localhost:52526/api/mod-ids/tracked');
+
+  if (!trackedResponse.ok) {
+    console.error('Tracked mods MO2 API error:', trackedResponse.status);
+    return [];
+  }
+
+  const trackedJson = await trackedResponse.json();
+  const trackedIds = Array.isArray(trackedJson.tracked_ids) ? trackedJson.tracked_ids : [];
+  return trackedIds;
+}
+
+async function fetchEndorsedModsMo2() {
+  const endorsedResponse = await fetch('http://localhost:52526/api/mod-ids/endorsed');
+
+  if (!endorsedResponse.ok) {
+    console.error('Endorsed mods MO2 API error:', endorsedResponse.status);
+    return [];
+  }
+
+  const endorsedJson = await endorsedResponse.json();
+  const endorsedIds = Array.isArray(endorsedJson.endorsed_ids) ? endorsedJson.endorsed_ids : [];
+  return endorsedIds;
+}
+
+async function fetchTrackedModsNexus(apiKey) {
   const trackedResponse = await fetch('https://api.nexusmods.com/v1/user/tracked_mods.json', {
-    headers: {
-      'apikey': apiKey
-    }
+    headers: { apikey: apiKey }
   });
 
   if (!trackedResponse.ok) {
-    console.error('Tracked mods API error:', trackedResponse.status);
+    console.error('Tracked mods Nexus API error:', trackedResponse.status);
     return [];
   }
 
   const trackedMods = await trackedResponse.json();
-  return trackedMods;
+  return Array.isArray(trackedMods) ? trackedMods : [];
 }
 
-async function fetchEndorsedMods(apiKey) {
+async function fetchEndorsedModsNexus(apiKey) {
   const endorsedResponse = await fetch('https://api.nexusmods.com/v1/user/endorsements.json', {
-    headers: {
-      'apikey': apiKey
-    }
+    headers: { apikey: apiKey }
   });
 
   if (!endorsedResponse.ok) {
-    console.error('Endorsed mods API error:', endorsedResponse.status);
+    console.error('Endorsed mods Nexus API error:', endorsedResponse.status);
     return [];
   }
-  
+
   const endorsedMods = await endorsedResponse.json();
-  return endorsedMods;
+  return Array.isArray(endorsedMods) ? endorsedMods : [];
 }
 
 function isCacheAlive(cache, currentGame, now, maxAgeMs) {
@@ -87,7 +109,7 @@ function isCacheAlive(cache, currentGame, now, maxAgeMs) {
   );
 }
 
-async function fetchNexusData(apiKey, currentGame) {
+async function fetchModStatus(apiKey, currentGame, useNexusApi) {
   const now = Date.now();
   try {
     if (isCacheAlive(apiModCache, currentGame, now, apiModCache.expiresIn)) {
@@ -111,23 +133,35 @@ async function fetchNexusData(apiKey, currentGame) {
       };
     }
 
-    const trackedMods = await fetchTrackedMods(apiKey)
-    const endorsedMods = await fetchEndorsedMods(apiKey)
+    let trackedMods;
+    let endorsedMods;
 
-    // filter to only include mods from the current game
-    const gameTracked = trackedMods.filter(mod => mod.domain_name === currentGame);
-    const gameEndorsed = endorsedMods.filter(mod => mod.domain_name === currentGame);
+    if (useNexusApi && apiKey) {
+      const [nexusTrackedMods, nexusEndorsedMods] = await Promise.all([
+        fetchTrackedModsNexus(apiKey),
+        fetchEndorsedModsNexus(apiKey)
+      ]);
+      trackedMods = nexusTrackedMods.filter(mod => mod.domain_name === currentGame);
+      endorsedMods = nexusEndorsedMods.filter(mod => mod.domain_name === currentGame && mod.status === "Endorsed");
+    } else {
+      const [mo2TrackedIds, mo2EndorsedIds] = await Promise.all([
+        fetchTrackedModsMo2(),
+        fetchEndorsedModsMo2()
+      ]);
+      trackedMods = mo2TrackedIds.map(id => ({ mod_id: id, domain_name: currentGame }));
+      endorsedMods = mo2EndorsedIds.map(id => ({ mod_id: id, domain_name: currentGame }));
+    }
 
-    apiModCache.trackedMods = gameTracked;
-    apiModCache.endorsedMods = gameEndorsed;
+    apiModCache.trackedMods = trackedMods;
+    apiModCache.endorsedMods = endorsedMods;
     apiModCache.timestamp = now;
     apiModCache.game = currentGame;
 
     try {
       await chrome.storage.local.set({
         apiModCache: {
-          trackedMods: gameTracked,
-          endorsedMods: gameEndorsed,
+          trackedMods: trackedMods,
+          endorsedMods: endorsedMods,
           timestamp: now,
           game: currentGame
         }
@@ -137,8 +171,8 @@ async function fetchNexusData(apiKey, currentGame) {
     }
 
     return {
-      trackedMods: gameTracked,
-      endorsedMods: gameEndorsed
+      trackedMods: trackedMods,
+      endorsedMods: endorsedMods
     };
   } catch (error) {
     console.error('Error fetching API mod status:', error);
@@ -259,13 +293,13 @@ async function main() {
   }
   createRefreshButton();
 
-  const defaults = { showEnabled: true, showInstalled: true, showUninstalled: true, showTracked: false, showEndorsed: false };
+  const defaults = { showEnabled: true, showInstalled: true, showUninstalled: true, showTracked: false, showEndorsed: false, useNexusApi: false };
   const [userMods, apiKey, settings] = await Promise.all([
     fetchMo2Data(),
     getApiKey(),
     chrome.storage.local.get(defaults)
   ]);
-  const { showEnabled, showInstalled, showUninstalled, showTracked, showEndorsed } = { ...defaults, ...settings };
+  const { showEnabled, showInstalled, showUninstalled, showTracked, showEndorsed, useNexusApi } = settings;
 
   if (!userMods) {
     console.error('Could not fetch user mods');
@@ -276,15 +310,15 @@ async function main() {
   const hasMO2Data = enabledModIds.size > 0 || allModIds.size > 0;
 
   const currentGame = getCurrentGame();
-  let apiModStatus = { trackedMods: [], endorsedMods: [] };
-  if (apiKey && currentGame) {
-    apiModStatus = await fetchNexusData(apiKey, currentGame);
+  let modStatus = { trackedMods: [], endorsedMods: [] };
+  if (currentGame && (useNexusApi ? apiKey : true)) {
+    modStatus = await fetchModStatus(apiKey, currentGame, useNexusApi);
   }
 
-  const trackedModIds = new Set(apiModStatus.trackedMods.map(mod => mod.mod_id));
-  const endorsedModIds = new Set(apiModStatus.endorsedMods.map(mod => mod.mod_id));
+  const trackedModIds = new Set(modStatus.trackedMods.map(mod => mod.mod_id));
+  const endorsedModIds = new Set(modStatus.endorsedMods.map(mod => mod.mod_id));
 
-  const hasNexusData = apiKey && (trackedModIds.size > 0 || endorsedModIds.size > 0);
+  const hasNexusData = trackedModIds.size > 0 || endorsedModIds.size > 0;
   if (!hasMO2Data && !hasNexusData) {
     console.error('No mod data: MO2 unreachable and no Nexus data to show');
     return;
@@ -312,7 +346,7 @@ async function main() {
     const isInstalled = allModIds.has(modId);
     const isTracked = trackedModIds.has(modId);
     const isEndorsed = endorsedModIds.has(modId);
-    const hasBadges = apiKey && ((showTracked && isTracked) || (showEndorsed && isEndorsed));
+    const showBadge = (showTracked && isTracked) || (showEndorsed && isEndorsed);
 
     const statusCell = row.querySelector('td:last-child');
     if (!statusCell) continue;
@@ -333,11 +367,11 @@ async function main() {
         indicator.className = 'enabled-status not-installed';
         indicator.innerHTML = '<span class="status-icon">✗</span> Not Installed';
         shouldShow = true;
-      } else if (hasBadges) {
+      } else if (showBadge) {
         indicator.className = 'enabled-status';
         shouldShow = true;
       }
-    } else if (hasBadges) {
+    } else if (showBadge) {
       indicator.className = 'enabled-status unknown';
       indicator.innerHTML = '<span class="status-icon">?</span> Unknown';
       shouldShow = true;
@@ -345,10 +379,10 @@ async function main() {
 
     if (shouldShow) {
       statusCell.classList.add('mod-status-cell');
-      if (apiKey && showTracked && isTracked) {
+      if (showTracked && isTracked) {
         indicator.appendChild(createApiStatusIcon('tracked', TRACKED_SVG, 'Tracked'));
       }
-      if (apiKey && showEndorsed && isEndorsed) {
+      if (showEndorsed && isEndorsed) {
         indicator.appendChild(createApiStatusIcon('endorsed', ENDORSED_SVG, 'Endorsed'));
       }
       statusCell.appendChild(indicator);
