@@ -1,5 +1,6 @@
 #enabled-mods-container,
 #uninstalled-mods-container,
+#use-nexus-api-container,
 #tracked-mods-container,
 #endorsed-mods-container {
     display: flex;

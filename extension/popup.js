@@ -3,13 +3,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     showEnabled: true,
     showUninstalled: true,
     showTracked: false,
-    showEndorsed: false
+    showEndorsed: false,
+    useNexusApi: false
   };
 
   const result = await chrome.storage.local.get(defaults);
 
   const enabledCheckbox = document.querySelector('#enabled-mods-container input');
   const uninstalledCheckbox = document.getElementById('uninstalledCheckbox');
+  const useNexusApiCheckbox = document.getElementById('useNexusApiCheckbox');
   const trackedCheckbox = document.getElementById('trackedCheckbox');
   const endorsedCheckbox = document.getElementById('endorsedCheckbox');
   const apiKeyInput = document.getElementById('apiKey');
@@ -19,11 +21,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     apiKeyInput.value = apiKeyResult.nexusApiKey;
   }
 
-  // any string will enable the buttons so kinda meh but i dont feel like doing api key validation
   function updateToggleStates() {
+    const useNexusApi = useNexusApiCheckbox.checked;
+    apiKeyInput.disabled = !useNexusApi;
     const hasApiKey = apiKeyInput.value.trim().length > 0;
-    trackedCheckbox.disabled = !hasApiKey;
-    endorsedCheckbox.disabled = !hasApiKey;
+    const canShowTrackedEndorsed = !useNexusApi || hasApiKey;
+    trackedCheckbox.disabled = !canShowTrackedEndorsed;
+    endorsedCheckbox.disabled = !canShowTrackedEndorsed;
+  }
+
+  if (useNexusApiCheckbox) {
+    useNexusApiCheckbox.checked = result.useNexusApi;
+    useNexusApiCheckbox.addEventListener('change', (e) => {
+      const useNexusApi = e.target.checked;
+      chrome.storage.local.set({ useNexusApi });
+      updateToggleStates();
+    });
   }
 
   updateToggleStates();
