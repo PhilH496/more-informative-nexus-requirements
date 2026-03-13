@@ -8,7 +8,7 @@ API for fetching mo2 mod info.
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from .bridge_client import MO2BridgeClient
-from .more_informative_nexus_requirements import getEnabledModIds, getModIds
+from .more_informative_nexus_requirements import ( getEnabledModIds, getModIds, getTrackedModIds, getEndorsedModIds )
 
 PORT = 52526
 class MoreInformativeNexusRequirementsAPIHandler(BaseHTTPRequestHandler):
@@ -48,6 +48,23 @@ class MoreInformativeNexusRequirementsAPIHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(f"Error getting enabled ids: {e}")
                 self.wfile.write(b'{"enabled_ids": []}')
+        elif self.path == '/api/mod-ids/tracked':
+            self.ok_response()
+            try:
+                tracked_ids = getTrackedModIds(self.client)
+                self.wfile.write(json.dumps(tracked_ids).encode('utf-8'))
+            except Exception as e:
+                print(f"Error getting tracked ids: {e}")
+                self.wfile.write(b'{"tracked_ids": []}')
+        elif self.path == '/api/mod-ids/endorsed':
+            self.ok_response()
+            try:
+                endorsed_ids = getEndorsedModIds(self.client)
+                self.wfile.write(json.dumps(endorsed_ids).encode('utf-8'))
+            except Exception as e:
+                print(f"Error getting endorsed ids: {e}")
+                self.wfile.write(b'{"endorsed_ids": []}')
+
 
 def run(server_class=ThreadingHTTPServer, handler_class=MoreInformativeNexusRequirementsAPIHandler, client=None):
     """

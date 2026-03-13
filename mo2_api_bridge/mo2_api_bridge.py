@@ -347,8 +347,7 @@ class APIExecutor(QObject):
     def _batch_get_full_mod_list(self, args: List, kwargs: Dict) -> List[Dict]:
         """
         Get all mods with their states and priorities in ONE call.
-        Returns: [{name, state, priority, display_name}, ...]
-        
+        Returns: [{name, state, priority, display_name, nexus_id, is_tracked, is_endorsed}, ...]
         ~20x faster than individual calls for 150+ mods.
         """
         modlist = self._interfaces.get("modList") or self._organizer.modList()
@@ -358,13 +357,45 @@ class APIExecutor(QObject):
             try:
                 state = modlist.state(mod)
                 state_value = state.value if hasattr(state, 'value') else int(state)
-                
+
+                nexus_id = None
+                is_tracked = False
+                is_endorsed = False
+
+                try:
+                    mod_interface = self._organizer.getMod(mod)
+                except Exception:
+                    mod_interface = None
+
+                if mod_interface is not None:
+                    try:
+                        nid = mod_interface.nexusId()
+                        if isinstance(nid, int) and nid > 0:
+                            nexus_id = nid
+                    except Exception:
+                        pass
+                    try:
+                        t_state = mod_interface.trackedState()
+                        t_val = t_state.value if hasattr(t_state, "value") else int(t_state)
+                        is_tracked = (t_val == 1)
+                    except Exception:
+                        pass
+                    try:
+                        e_state = mod_interface.endorsedState()
+                        e_val = e_state.value if hasattr(e_state, "value") else int(e_state)
+                        is_endorsed = (e_val == 1)
+                    except Exception:
+                        pass
+
                 result.append({
                     "name": mod,
                     "state": state_value,
                     "state_text": {0: "missing", 1: "disabled", 2: "enabled"}.get(state_value, "unknown"),
                     "priority": modlist.priority(mod),
-                    "display_name": modlist.displayName(mod) or mod
+                    "display_name": modlist.displayName(mod) or mod,
+                    "nexus_id": nexus_id,
+                    "is_tracked": is_tracked,
+                    "is_endorsed": is_endorsed,
                 })
             except Exception as e:
                 result.append({

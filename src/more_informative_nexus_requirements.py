@@ -3,34 +3,87 @@ from .bridge_client import MO2BridgeClient
 
 def getModIds(client: MO2BridgeClient) -> Dict[str, List[int]]:
     """Gets all mod ids."""
-    mod_names = client.call('modList.allMods')
-    nexus_ids = []
+    try:
+        mods = client.call("batch.getFullModList")
+    except Exception as e:
+        print(f"Error fetching full mod list: {e}")
+        return {"nexus_ids": []}
 
-    if mod_names:
-        for mod_name in mod_names:
+    nexus_ids: List[int] = []
+    if mods:
+        for mod in mods:
             try:
-                nexus_id = client.call('modList.nexusId', mod_name)
-                if nexus_id and nexus_id != -1:
-                    nexus_ids.append(nexus_id)
+                nid = mod.get("nexus_id")
+                if nid:
+                    nexus_ids.append(nid)
             except Exception as e:
-                print(f'Error getting Nexus ID for {mod_name}: {e}')
-    return {'nexus_ids': nexus_ids}
+                print(f"Error reading Nexus ID from {mod}: {e}")
+
+    return {"nexus_ids": nexus_ids}
+
 
 def getEnabledModIds(client: MO2BridgeClient) -> Dict[str, List[int]]:
-    """Gets only enabled mod ids."""
-    mod_names = client.call('modList.allMods')
+    """Gets enabled mod ids."""
+    try:
+        mods = client.call("batch.getFullModList")
+    except Exception as e:
+        print(f"Error fetching mod list for enabled mods: {e}")
+        return {"enabled_ids": []}
 
-    enabled_ids = []
-    if mod_names:
-        for mod_name in mod_names:
+    enabled_ids: List[int] = []
+    if mods:
+        for mod in mods:
             try:
-                state = client.call('modList.state', mod_name)
-                # state is a bitmask enum
-                if state & 2:  # 2 is the bitmask for enabled mods
-                    nexus_id = client.call('modList.nexusId', mod_name)
-                    if nexus_id:
-                        enabled_ids.append(nexus_id)
-
+                state = mod.get("state")
+                nid = mod.get("nexus_id")
+                is_enabled = state & 2 # 2 is the bitmask for enabled mods
+                if is_enabled and nid: 
+                    enabled_ids.append(nid)
             except Exception as e:
-                print(f'Error getting enabled mod id for {mod_name}: {e}')
-    return {'enabled_ids': enabled_ids}
+                print(f"Error reading enabled Nexus ID from {mod}: {e}")
+
+    return {"enabled_ids": enabled_ids}
+
+
+def getTrackedModIds(client: MO2BridgeClient) -> Dict[str, List[int]]:
+    """Gets tracked mod ids."""
+    try:
+        mods = client.call("batch.getFullModList")
+    except Exception as e:
+        print(f"Error fetching mod list for tracked mods: {e}")
+        return {"tracked_ids": []}
+
+    tracked_ids: List[int] = []
+    if mods:
+        for mod in mods:
+            try:
+                nid = mod.get("nexus_id")
+                is_tracked = bool(mod.get("is_tracked"))
+                if is_tracked and nid:
+                    tracked_ids.append(nid)
+            except Exception as e:
+                print(f"Error reading tracked Nexus ID from {mod}: {e}")
+
+    return {"tracked_ids": tracked_ids}
+
+
+def getEndorsedModIds(client: MO2BridgeClient) -> Dict[str, List[int]]:
+    """Gets endorsed mod ids."""
+    try:
+        mods = client.call("batch.getFullModList")
+    except Exception as e:
+        print(f"Error fetching mod list for endorsed mods: {e}")
+        return {"endorsed_ids": []}
+
+    endorsed_ids: List[int] = []
+    if mods:
+        for mod in mods:
+            try:
+                nid = mod.get("nexus_id")
+                is_endorsed = bool(mod.get("is_endorsed"))
+                if is_endorsed and nid:
+                    endorsed_ids.append(nid)
+            except Exception as e:
+                print(f"Error reading endorsed Nexus ID from {mod}: {e}")
+
+    return {"endorsed_ids": endorsed_ids}
